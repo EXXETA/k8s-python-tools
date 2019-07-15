@@ -1,0 +1,12 @@
+venv
+.pytest_cache
+__pycache__
+.idea
+*.pyc
+*.bak
+*.py[cod]
+*$py.class
+
+dump*.sql.gz
+dump*.sql
+.scannerwork

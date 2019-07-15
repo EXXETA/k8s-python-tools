@@ -1,0 +1,181 @@
+##
+## Copyright (c) 2019 EXXETA AG and others.
+##
+## This file is part of k8s-python-tools
+## (see https://github.com/EXXETA/k8s-python-tools).
+##
+## Licensed to the Apache Software Foundation (ASF) under one
+## or more contributor license agreements.  See the NOTICE file
+## distributed with this work for additional information
+## regarding copyright ownership.  The ASF licenses this file
+## to you under the Apache License, Version 2.0 (the
+## "License"); you may not use this file except in compliance
+## with the License.  You may obtain a copy of the License at
+##
+##   http://www.apache.org/licenses/LICENSE-2.0
+##
+## Unless required by applicable law or agreed to in writing,
+## software distributed under the License is distributed on an
+## "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+## KIND, either express or implied.  See the License for the
+## specific language governing permissions and limitations
+## under the License.
+##
+# this is a self-defined custom format yaml file
+# the internal structure is used in codegen.py only. If you change anything in structure, reflect changes there!
+lib_def:
+  remove:
+    file: remover.py
+    template: def_remove.py.j2
+    entries:
+      - name: Namespace
+        api: CoreV1Api
+        api_method: "api.delete_namespace_with_http_info(namespace)"
+        namespaced: True
+      - {name: Deployment, api: ExtensionsV1beta1Api, api_method: "api.delete_namespaced_deployment_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: Pod, api: CoreV1Api, api_method: "api.delete_namespaced_pod_with_http_info(name=name, namespace=namespace)", namespaced: True }
+      - {name: Service, api: CoreV1Api, api_method: "api.delete_namespaced_service_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: ReplicationController, api: CoreV1Api, api_method: "api.delete_namespaced_replication_controller_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: PersistentVolumeClaim, api: CoreV1Api, api_method: "api.delete_namespaced_persistent_volume_claim_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: Ingress, api: ExtensionsV1beta1Api, api_method: "api.delete_namespaced_ingress_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: NetworkPolicy, api: ExtensionsV1beta1Api, api_method: "api.delete_namespaced_network_policy_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: Job, api: BatchV1Api, api_method: "api.delete_namespaced_job_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: CronJob, api: BatchV1beta1Api, api_method: "api.delete_namespaced_cron_job_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: ConfigMap, api: CoreV1Api, api_method: "api.delete_namespaced_config_map_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: Secret, api: CoreV1Api, api_method: "api.delete_namespaced_secret_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: ServiceAccount, api: CoreV1Api, api_method: "api.delete_namespaced_service_account_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: ResourceQuota, api: CoreV1Api, api_method: "api.delete_namespaced_resource_quota_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: Endpoints, api: CoreV1Api, api_method: "api.delete_namespaced_endpoints_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: PodTemplate, api: CoreV1Api, api_method: "api.delete_namespaced_pod_template_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: RoleBinding, api: RbacAuthorizationV1Api, api_method: "api.delete_namespaced_role_binding_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: Role, api: RbacAuthorizationV1Api, api_method: "api.delete_namespaced_role_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: PodDisruptionBudget, api: PolicyV1beta1Api, api_method: "api.delete_namespaced_pod_disruption_budget_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: Event, api: CoreV1Api, api_method: "api.delete_namespaced_event_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: Lease, api: CoordinationV1beta1Api, api_method: "api.delete_namespaced_lease_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: HorizontalPodAutoscaler, api: AutoscalingV1Api, api_method: "api.delete_namespaced_horizontal_pod_autoscaler_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: ControllerRevision, api: AppsV1Api, api_method: "api.delete_namespaced_controller_revision_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: LimitRange, api: CoreV1Api, api_method: "api.delete_namespaced_limit_range_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: ClusterRole, api: RbacAuthorizationV1Api, api_method: "api.delete_cluster_role_with_http_info(name)", namespaced: False }
+      - {name: ClusterRoleBinding, api: RbacAuthorizationV1Api, api_method: "api.delete_cluster_role_binding_with_http_info(name)", namespaced: False }
+      - {name: PodSecurityPolicy, api: PolicyV1beta1Api, api_method: "api.delete_pod_security_policy_with_http_info(name)", namespaced: False }
+      - {name: PersistentVolume, api: CoreV1Api, api_method: "api.delete_persistent_volume_with_http_info(name)", namespaced: False }
+      - {name: VolumeAttachment, api: StorageV1Api, api_method: "api.delete_volume_attachment_with_http_info(name)", namespaced: False }
+      - {name: StorageClass, api: StorageV1Api, api_method: "api.delete_storage_class_with_http_info(name)", namespaced: False }
+      - {name: PriorityClass, api: SchedulingV1beta1Api, api_method: "api.delete_priority_class_with_http_info(name)", namespaced: False }
+      - {name: Node, api: CoreV1Api, api_method: "api.delete_node_with_http_info(name)", namespaced: False }
+      - {name: CustomResourceDefinition, api: ApiextensionsV1beta1Api, api_method: "api.delete_custom_resource_definition_with_http_info(name)", namespaced: False }
+      - {name: CertificateSigningRequest, api: CertificatesV1beta1Api, api_method: "api.delete_certificate_signing_request_with_http_info(name)", namespaced: False }
+  check:
+    file: checker.py
+    template: def_check.py.j2
+    entries:
+      - {name: Namespace, api: CoreV1Api, api_method: "api.read_namespace_with_http_info(namespace)", namespaced: True }
+      - {name: Deployment, api: ExtensionsV1beta1Api, api_method: "api.read_namespaced_deployment_status_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: Pod, api: CoreV1Api, api_method: "api.read_namespaced_pod_status_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: Service, api: CoreV1Api, api_method: "api.read_namespaced_service_status_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: ReplicationController, api: CoreV1Api, api_method: "api.read_namespaced_replication_controller_status_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: PersistentVolumeClaim, api: CoreV1Api, api_method: "api.read_namespaced_persistent_volume_claim_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: Ingress, api: ExtensionsV1beta1Api, api_method: "api.read_namespaced_ingress_status_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: NetworkPolicy, api: ExtensionsV1beta1Api, api_method: "api.read_namespaced_network_policy_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: Job, api: BatchV1Api, api_method: "api.read_namespaced_job_status_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: CronJob, api: BatchV1beta1Api, api_method: "api.read_namespaced_cron_job_status_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: ConfigMap, api: CoreV1Api, api_method: "api.read_namespaced_config_map_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: Secret, api: CoreV1Api, api_method: "api.read_namespaced_secret_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: ServiceAccount, api: CoreV1Api, api_method: "api.read_namespaced_service_account_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: ResourceQuota, api: CoreV1Api, api_method: "api.read_namespaced_resource_quota_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: Endpoints, api: CoreV1Api, api_method: "api.read_namespaced_endpoints_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: PodTemplate, api: CoreV1Api, api_method: "api.read_namespaced_pod_template_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: RoleBinding, api: RbacAuthorizationV1Api, api_method: "api.read_namespaced_role_binding_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: Role, api: RbacAuthorizationV1Api, api_method: "api.read_namespaced_role_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: PodDisruptionBudget, api: PolicyV1beta1Api, api_method: "api.read_namespaced_pod_disruption_budget_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: Event, api: CoreV1Api, api_method: "api.read_namespaced_event_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: Lease, api: CoordinationV1beta1Api, api_method: "api.read_namespaced_lease_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: HorizontalPodAutoscaler, api: AutoscalingV1Api, api_method: "api.read_namespaced_horizontal_pod_autoscaler_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: ControllerRevision, api: AppsV1Api, api_method: "api.read_namespaced_controller_revision_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: LimitRange, api: CoreV1Api, api_method: "api.read_namespaced_limit_range_with_http_info(name, namespace=namespace)", namespaced: True }
+      - {name: ClusterRole, api: RbacAuthorizationV1Api, api_method: "api.read_cluster_role_with_http_info(name)", namespaced: False }
+      - {name: ClusterRoleBinding, api: RbacAuthorizationV1Api, api_method: "api.read_cluster_role_binding_with_http_info(name)", namespaced: False }
+      - {name: PodSecurityPolicy, api: PolicyV1beta1Api, api_method: "api.read_pod_security_policy_with_http_info(name)", namespaced: False }
+      - {name: PersistentVolume, api: CoreV1Api, api_method: "api.read_persistent_volume_with_http_info(name)", namespaced: False }
+      - {name: VolumeAttachment, api: StorageV1Api, api_method: "api.read_volume_attachment_with_http_info(name)", namespaced: False }
+      - {name: StorageClass, api: StorageV1Api, api_method: "api.read_storage_class_with_http_info(name)", namespaced: False }
+      - {name: PriorityClass, api: SchedulingV1beta1Api, api_method: "api.read_priority_class_with_http_info(name)", namespaced: False }
+      - {name: Node, api: CoreV1Api, api_method: "api.read_node_with_http_info(name)", namespaced: False }
+      - {name: CustomResourceDefinition, api: ApiextensionsV1beta1Api, api_method: "api.read_custom_resource_definition_with_http_info(name)", namespaced: False }
+      - {name: CertificateSigningRequest, api: CertificatesV1beta1Api, api_method: "api.read_certificate_signing_request_with_http_info(name)", namespaced: False }
+  confirm:
+    file: confirmer.py
+    template: def_confirm.py.j2
+    entries:
+      - {name: Pod, api: CoreV1Api, api_method: "api.list_namespaced_pod(namespace=namespace)", namespaced: True }
+      - {name: Deployment, api: ExtensionsV1beta1Api, api_method: "api.list_namespaced_deployment(namespace=namespace)", namespaced: True }
+      - {name: Service, api: CoreV1Api, api_method: "api.list_namespaced_service(namespace=namespace)", namespaced: True }
+      - {name: ReplicationController, api: CoreV1Api, api_method: "api.list_namespaced_replication_controller(namespace=namespace)", namespaced: True }
+      - {name: PersistentVolumeClaim, api: CoreV1Api, api_method: "api.list_namespaced_persistent_volume_claim(namespace=namespace)", namespaced: True }
+      - {name: Ingress, api: ExtensionsV1beta1Api, api_method: "api.list_namespaced_ingress(namespace=namespace)", namespaced: True }
+      - {name: NetworkPolicy, api: ExtensionsV1beta1Api, api_method: "api.list_namespaced_network_policy(namespace=namespace)", namespaced: True }
+      - {name: Job, api: BatchV1Api, api_method: "api.list_namespaced_job(namespace=namespace)", namespaced: True }
+      - {name: CronJob, api: BatchV1beta1Api, api_method: "api.list_namespaced_cron_job(namespace=namespace)", namespaced: True }
+      - {name: ConfigMap, api: CoreV1Api, api_method: "api.list_namespaced_config_map(namespace=namespace)", namespaced: True }
+      - {name: Secret, api: CoreV1Api, api_method: "api.list_namespaced_secret(namespace=namespace)", namespaced: True }
+      - {name: ServiceAccount, api: CoreV1Api, api_method: "api.list_namespaced_service_account(namespace=namespace)", namespaced: True }
+      - {name: ResourceQuota, api: CoreV1Api, api_method: "api.list_namespaced_resource_quota(namespace)", namespaced: True }
+      - {name: Endpoints, api: CoreV1Api, api_method: "api.list_namespaced_endpoints(namespace)", namespaced: True }
+      - {name: PodTemplate, api: CoreV1Api, api_method: "api.list_namespaced_pod_template(namespace)", namespaced: True }
+      - {name: RoleBinding, api: RbacAuthorizationV1Api, api_method: "api.list_namespaced_role_binding(namespace)", namespaced: True }
+      - {name: Role, api: RbacAuthorizationV1Api, api_method: "api.list_namespaced_role(namespace)", namespaced: True }
+      - {name: PodDisruptionBudget, api: PolicyV1beta1Api, api_method: "api.list_namespaced_pod_disruption_budget(namespace)", namespaced: True }
+      - {name: Event, api: CoreV1Api, api_method: "api.list_namespaced_event(namespace)", namespaced: True }
+      - {name: Lease, api: CoordinationV1beta1Api, api_method: "api.list_namespaced_lease(namespace)", namespaced: True }
+      - {name: HorizontalPodAutoscaler, api: AutoscalingV1Api, api_method: "api.list_namespaced_horizontal_pod_autoscaler(namespace)", namespaced: True }
+      - {name: ControllerRevision, api: AppsV1Api, api_method: "api.list_namespaced_controller_revision(namespace)", namespaced: True }
+      - {name: LimitRange, api: CoreV1Api, api_method: "api.list_namespaced_limit_range(namespace)", namespaced: True }
+      - {name: ClusterRole, api: RbacAuthorizationV1Api, api_method: "api.list_cluster_role()", namespaced: False }
+      - {name: ClusterRoleBinding, api: RbacAuthorizationV1Api, api_method: "api.list_cluster_role_binding()", namespaced: False }
+      - {name: PodSecurityPolicy, api: PolicyV1beta1Api, api_method: "api.list_pod_security_policy()", namespaced: False }
+      - {name: PersistentVolume, api: CoreV1Api, api_method: "api.list_persistent_volume()", namespaced: False }
+      - {name: VolumeAttachment, api: StorageV1Api, api_method: "api.list_volume_attachment()", namespaced: False }
+      - {name: StorageClass, api: StorageV1Api, api_method: "api.list_storage_class()", namespaced: False }
+      - {name: PriorityClass, api: SchedulingV1beta1Api, api_method: "api.list_priority_class()", namespaced: False }
+      - {name: Node, api: CoreV1Api, api_method: "api.list_node()", namespaced: False }
+      - {name: CustomResourceDefinition, api: ApiextensionsV1beta1Api, api_method: "api.list_custom_resource_definition()", namespaced: False }
+      - {name: CertificateSigningRequest, api: CertificatesV1beta1Api, api_method: "api.list_certificate_signing_request()", namespaced: False }
+actions:
+  removal:
+    destination: actions/drop
+    template: action_removal.py.j2
+    entries:
+      - { name: ConfigMap, namespaced: True }
+      - { name: CronJob, namespaced: True }
+      - { name: Deployment, namespaced: True }
+      - { name: Endpoints, namespaced: True }
+      - { name: Ingress, namespaced: True }
+      - { name: Job, namespaced: True }
+      - { name: NetworkPolicy, namespaced: True }
+      - { name: Pod, namespaced: True }
+      - { name: PodTemplate, namespaced: True}
+      - { name: PersistentVolumeClaim, namespaced: True }
+      - { name: ReplicationController, namespaced: True }
+      - { name: ResourceQuota, namespaced: True }
+      - { name: Secret, namespaced: True }
+      - { name: Service, namespaced: True }
+      - { name: ServiceAccount, namespaced: True }
+      - { name: RoleBinding, namespaced: True }
+      - { name: Role, namespaced: True }
+      - { name: PodDisruptionBudget, namespaced: True }
+      - { name: Event, namespaced: True }
+      - { name: Lease, namespaced: True }
+      - { name: HorizontalPodAutoscaler, namespaced: True }
+      - { name: ControllerRevision, namespaced: True }
+      - { name: LimitRange, namespaced: True }
+      - { name: ClusterRole, namespaced: False }
+      - { name: ClusterRoleBinding, namespaced: False }
+      - { name: PodSecurityPolicy, namespaced: False }
+      - { name: PersistentVolume, namespaced: False }
+      - { name: VolumeAttachment, namespaced: False }
+      - { name: StorageClass, namespaced: False }
+      - { name: PriorityClass, namespaced: False }
+      - { name: Node, namespaced: False }
+      - { name: CustomResourceDefinition, namespaced: False }
+      - { name: CertificateSigningRequest, namespaced: False }
+      # namespace and sets removal actions are not auto-generated
