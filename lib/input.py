@@ -23,7 +23,6 @@
 #
 from abc import abstractmethod
 
-import inquirer
 from prompt_toolkit.shortcuts import radiolist_dialog, input_dialog, yes_no_dialog, prompt
 
 """This file contains files for user input mechanism and the usage of ALL external input libraries"""
@@ -92,6 +91,7 @@ class InquirerAdapter(AbstractInputAdapter):
     """Python inquirer implementation. Does not work on windows!"""
 
     def yes_no(self, title, message) -> bool:
+        import inquirer
         options = ["No", "Yes"]
         print(title)
         questions = [
@@ -103,6 +103,7 @@ class InquirerAdapter(AbstractInputAdapter):
         return answers[title] == "Yes"
 
     def radio_list(self, title, text, options) -> str:
+        import inquirer
         questions = [
             inquirer.List(title,
                           message="Select a " + title + ":",

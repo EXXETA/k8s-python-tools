@@ -23,17 +23,29 @@
 #
 import os
 import subprocess
+import time
 
-from kubernetes import stream
+from kubernetes import stream, client
 from kubernetes.client.apis import core_v1_api
 from kubernetes.client.rest import ApiException
 
 from lib.common import load_kube
 
+JOB_COMPLETION_WAIT_LIMIT = 3600
+
 init_exec_command = ['/bin/sh']
 
 
 def run_command_in_pod(context, namespace, pod, command):
+    """
+    returns string or None on failure
+
+    :param context:
+    :param namespace:
+    :param pod:
+    :param command:
+    :return:
+    """
     if context is None:
         raise SystemExit("Null context given")
     load_kube(context)
@@ -49,6 +61,33 @@ def run_command_in_pod(context, namespace, pod, command):
         print("Something went wrong while connecting to pod", pod, "in namespace", namespace)
         print(err)
         return None
+
+
+def apply_kube_yaml(context, abs_file_location):
+    if context is None:
+        raise SystemExit('Null context given')
+    load_kube(context)
+    apply_cmd = "kubectl apply -f {0} --context {1}".format(abs_file_location, context)
+    print('Executing cmd: %s' % apply_cmd)
+    output = subprocess.check_output(apply_cmd, shell=True)
+    print(str(bytes(output), 'utf-8'))
+
+
+def get_pod_logs(context, namespace, pod) -> str:
+    if context is None:
+        raise SystemExit('Null context given')
+    if namespace is None:
+        raise SystemExit('Null namespace given')
+    if pod is None:
+        raise SystemExit('Null pod given')
+
+    load_kube(context)
+    try:
+        api_instance = client.CoreV1Api()
+        api_response = api_instance.read_namespaced_pod_log(name=pod, namespace=namespace)
+        return api_response
+    except ApiException as e:
+        print('Found exception in reading the logs')
 
 
 class DownloadFile:
@@ -204,6 +243,165 @@ class RemoteDirExists:
         else:
             print("Remote dir %s does NOT exist" % self.path)
         return output == "True"
+
+
+def verify_container_image(context, namespace, pod, valid_image_names):
+    cmd = "kubectl get pod -n {0} {1} --context {2}".format(namespace, pod, context) \
+          + " -o jsonpath='{$.spec.containers[].image}'"
+    print("executing: ", cmd)
+    process = subprocess.check_output(cmd, shell=True)
+
+    container_image_name = process.decode('utf-8')
+    print('received image name: "%s"' % container_image_name)
+
+    if len(container_image_name) == 0:
+        print('INVALID empty container image found!')
+        return False
+
+    for allowed_version in valid_image_names:
+        if allowed_version in container_image_name:
+            print('found VALID container image: "%s"' % container_image_name)
+            return True
+
+    print('INVALID image name "%s"' % container_image_name)
+    return False
+
+
+def check_file_for_regex_content(context, namespace, pod, abs_file_name, checked_content_re):
+    import re
+    cmd = "kubectl exec --context {0} -n {1} {2} cat \"{3}\"".format(context, namespace, pod, abs_file_name)
+    print('executing cmd: %s' % cmd)
+    print('looking for regex: %s in file %s' % (checked_content_re, abs_file_name))
+    output = subprocess.check_output(cmd, shell=True)
+    matches = re.search(checked_content_re, str(output, 'utf-8'), re.MULTILINE)
+    return matches is not None
+
+
+def get_pvc_size(context, namespace, pvc):
+    cmd = "kubectl get pvc {0} -n {1} --context {2} " \
+              .format(pvc, namespace, context) + "-o jsonpath='{$.status.capacity.storage}'"
+    print("executing cmd: %s" % cmd)
+    output = subprocess.check_output(cmd, shell=True)
+    return str(bytes(output), "utf-8")
+
+
+def get_configmap_content(context, namespace, cm, filename) -> str:
+    cmd = 'kubectl get cm -n {0} {1} --context {2}'.format(namespace, cm, context) + (
+            ' -o jsonpath="{$.data.%s}"' % filename)
+    print('executing cmd: %s' % cmd)
+    output = subprocess.check_output(cmd, shell=True)
+
+    if output is None or output == "":
+        raise SystemExit('Could not fetch content of configmap %s in namespace %s' % (cm, namespace))
+    return str(bytes(output), 'utf-8')
+
+
+def is_helm_release_live(release_name) -> bool:
+    cmd = 'helm ls --deployed {0} --tiller-namespace default'.format(release_name)
+    print('executing cmd: %s' % cmd)
+    output = subprocess.check_output(cmd, shell=True)
+    out = str(bytes(output), 'utf-8').strip()
+    if output is None or len(out) == 0:
+        # ensure its really removed
+        cmd2 = 'helm del --purge {0} --tiller-namespace default'.format(release_name)
+        try:
+            output2 = subprocess.check_output(cmd2, shell=True)
+        except subprocess.CalledProcessError:
+            pass
+        return False
+    print(out)
+    return True
+
+
+def wait_for_pod_is_running_and_ready(context, namespace, pod):
+    print('Checking if pod is ready')
+    running_cmd = 'kubectl get pod --context {0} -n {1} {2}'.format(context, namespace, pod) \
+                  + ' -o jsonpath="{$.metadata.deletionTimestamp}"'
+    print('executing cmd: %s' % running_cmd)
+    _wait_for_output_or_fail(running_cmd, 90, b'', 'waiting for pod %s is not terminating' % pod,
+                             'could not check for pod being terminating!')
+    print('Pod is NOT (or no longer) terminating')
+
+    running_cmd = 'kubectl get pod --context {0} -n {1} {2}'.format(context, namespace, pod) \
+                  + ' -o jsonpath="{$.status.phase}"'
+    print('executing cmd: %s' % running_cmd)
+    _wait_for_output_or_fail(running_cmd, 180, b'Running', 'waiting for pod %s is running' % pod,
+                             'could not check for pod being in phase running!')
+    print('Pod is running')
+    cmd = 'kubectl get pod --context {0} -n {1} {2}'.format(context, namespace, pod) \
+          + ' -o jsonpath="{$.status.containerStatuses[].ready}"'
+    print('executing cmd: %s' % cmd)
+    _wait_for_output_or_fail(cmd, 180, b'true', 'waiting for pod %s is ready' % pod,
+                             'could not check for pod being ready!')
+    print('Pod is ready')
+
+
+def wait_for_job_is_completed(context, namespace, job):
+    print('Check for job %s is completed' % job)
+    cmd = 'kubectl get job --context {0} -n {1} {2}'.format(context, namespace, job) \
+          + ' -o jsonpath="{$.status.conditions[].type}"'
+    print('executing cmd: %s' % cmd)
+    _wait_for_output_or_fail(cmd, JOB_COMPLETION_WAIT_LIMIT, b'Complete', 'waiting for job %s is completed' % job,
+                             'could not check for job being completed!')
+    print('Job is completed')
+
+
+def wait_for_pvc_is_bound(context, namespace, pvc):
+    print('Check for pvc %s is bound' % pvc)
+    cmd = 'kubectl get pvc --context {0} -n {1} {2}'.format(context, namespace, pvc) \
+          + ' -o jsonpath="{$.status.phase}"'
+    print('executing cmd: %s' % cmd)
+    _wait_for_output_or_fail(cmd, 600, b'Bound', 'waiting for pvc %s is bound' % pvc,
+                             'could not check for pvc being bound!')
+    print('PVC is bound')
+
+
+def get_nfs_path(context, pv_name) -> str:
+    print('Detecting nfs path')
+    cmd = 'kubectl get pv --context {0} {1}'.format(context, pv_name) \
+          + ' -o jsonpath="{.spec.nfs.path}"'
+    print('executing cmd: %s' % cmd)
+    o = subprocess.check_output(cmd, shell=True)
+    s = str(bytes(o), 'utf-8')
+    print('Detected nfs path: %s' % s)
+    if s is None or s == '':
+        raise SystemExit('invalid nfs path')
+    return s
+
+
+def get_nfs_server(context, pv_name) -> str:
+    print('Detecting nfs server')
+    cmd = 'kubectl get pv --context {0} {1}'.format(context, pv_name) \
+          + ' -o jsonpath="{.spec.nfs.server}"'
+    print('executing cmd: %s' % cmd)
+    o = subprocess.check_output(cmd, shell=True)
+    s = str(bytes(o), 'utf-8')
+    print('Detected nfs server: %s' % s)
+    if s is None or s == '':
+        raise SystemExit('invalid nfs server')
+    return s
+
+
+def _wait_for_output_or_fail(cmd, limit_seconds, search_string, wait_msg, err_msg):
+    """
+    Only internal use
+    :param cmd:
+    :param limit_seconds:
+    :param search_string:
+    :param wait_msg:
+    :param err_msg:
+    :return:
+    """
+    output = subprocess.check_output(cmd, shell=True)
+    counter = 0
+    while output != search_string:
+        output = subprocess.check_output(cmd, shell=True)
+        if counter % 5 == 0:
+            print(wait_msg)
+        time.sleep(1)
+        if counter >= limit_seconds:
+            raise SystemExit(err_msg)
+        counter += 1
 
 
 def main():

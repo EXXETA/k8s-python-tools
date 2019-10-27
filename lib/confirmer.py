@@ -417,11 +417,12 @@ def confirm_set(context, namespace):
     load_kube(context)
 
     try:
-        kube_sets = sorted(get_sets(context, namespace))
-    except:
+        kube_sets = get_sets(context, namespace)
+    except Exception as e:
+        print(e)
         print("An error occured fetching sets from context",
               context, "and namespace", namespace)
-        kube_sets = []
+        kube_sets = list()
 
     def set_label(option) -> str:
         output = ""
@@ -435,8 +436,8 @@ def confirm_set(context, namespace):
         return output
 
     input_adapter = get_current_input_adapter()
-    set_labels_c = [len(kube_sets)]
-    set_labels = [len(kube_sets)]
+    set_labels_c = [None] * len(kube_sets)
+    set_labels = [None] * len(kube_sets)
     j = 0
     for i in kube_sets:
         label = set_label(i)

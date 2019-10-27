@@ -21,6 +21,7 @@
 # specific language governing permissions and limitations
 # under the License.
 #
+import base64
 import os
 from abc import abstractmethod, ABC
 from enum import Enum
@@ -28,6 +29,7 @@ from typing import Iterable
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape, meta
 from kubernetes import client, config
+from kubernetes.client.rest import ApiException
 
 from lib.input import get_current_input_adapter
 
@@ -80,7 +82,7 @@ def choose_context(given_context=None) -> str:
 
 class SetType(Enum):
     replica_set = 'ReplicaSet'
-    stateful_Set = 'StatefulSet'
+    stateful_set = 'StatefulSet'
     daemon_set = 'DaemonSet'
 
     def __str__(self):
@@ -91,7 +93,7 @@ def detect_set_type(namespaced_set) -> SetType:
     if isinstance(namespaced_set, client.models.v1_replica_set.V1ReplicaSet):
         return SetType.replica_set
     if isinstance(namespaced_set, client.models.v1_stateful_set.V1StatefulSet):
-        return SetType.stateful_Set
+        return SetType.stateful_set
     if isinstance(namespaced_set, client.models.v1_daemon_set.V1DaemonSet):
         return SetType.daemon_set
     raise SystemExit("Invalid type for set", namespaced_set)
@@ -105,22 +107,32 @@ def get_sets(context, namespace) -> list:
     api = client.AppsV1Api()
     set_list = list()
     # replica
-    replica_sets = api.list_namespaced_replica_set(namespace=namespace)
-    if replica_sets:
-        for i in replica_sets.items:
-            set_list.append(i)
+    try:
+        replica_sets = api.list_namespaced_replica_set(namespace=namespace)
+        if replica_sets:
+            for i in replica_sets.items:
+                set_list.append(i)
+    except ApiException:
+        print('Error during fetch of replica sets')
 
     # stateful
-    stateful_sets = api.list_namespaced_stateful_set(namespace=namespace)
-    if stateful_sets:
-        for i in stateful_sets.items:
-            set_list.append(i)
+    try:
+        stateful_sets = api.list_namespaced_stateful_set(namespace=namespace)
+        if stateful_sets:
+            for i in stateful_sets.items:
+                set_list.append(i)
+    except ApiException:
+        print('Error during fetch of stateful sets')
 
     # daemon
-    daemon_sets = api.list_namespaced_daemon_set(namespace=namespace)
-    if daemon_sets:
-        for i in daemon_sets.items:
-            set_list.append(i)
+    try:
+        daemon_sets = api.list_namespaced_daemon_set(namespace=namespace)
+        if daemon_sets:
+            for i in daemon_sets.items:
+                set_list.append(i)
+    except ApiException:
+        print('Error during fetch of daemon sets')
+
     return set_list
 
 
@@ -305,7 +317,8 @@ class AbstractCommand(ABC):
         if argument_config.node:
             group.add_argument("--node", help="a name of a Node", type=str)
         if argument_config.certificate_signing_request:
-            group.add_argument("--certificate-signing-request", "-csr", help="a name of a CertificateSigningRequest", type=str)
+            group.add_argument("--certificate-signing-request", "-csr", help="a name of a CertificateSigningRequest",
+                               type=str)
 
 
 class DynamicArgs(object):
@@ -317,6 +330,7 @@ class DynamicArgs(object):
     INPUT_TYPE_NAMESPACE = "namespace"
     INPUT_TYPE_POD = "pod"
     INPUT_TYPE_PATH = "path"
+    INPUT_TYPE_PVC = "pvc"
 
     def __init__(self, context, real_args, defined_args: Iterable[CustomParameter]):
         self.context = context
@@ -384,15 +398,21 @@ class DynamicArgs(object):
             # no support for default value of namespaced parameter
             self.all_args[cp.name] = confirm_namespace(self.context)
         elif cp.input_type == self.INPUT_TYPE_POD:
-            namespace = self.all_args[cp.dependency]
-            if namespace is None or namespace is "":
-                raise SystemExit("missing namespace value in field " + cp.dependency)
+            namespace = self.get_namespace(cp)
             returned_pod = confirm_pod(self.context, namespace)
             if cp.default is not None and (returned_pod is "" or returned_pod is None):
                 returned_pod = cp.default
             self.all_args[cp.name] = returned_pod
         elif cp.input_type == self.INPUT_TYPE_PATH:
             self.ask_for_path_value(cp)
+        elif cp.input_type == self.INPUT_TYPE_PVC:
+            from lib.confirmer import confirm_persistent_volume_claim
+
+            namespace = self.get_namespace(cp)
+            returned_pvc = confirm_persistent_volume_claim(self.context, namespace)
+            if cp.default is not None and (returned_pvc is "" or returned_pvc is None):
+                returned_pvc = cp.default
+            self.all_args[cp.name] = returned_pvc
         elif cp.input_type is str:
             returned_str = prompt_string("Input " + cp.help + " " + default_value + ":")
             if cp.default is not None and (returned_str is None or returned_str is ""):
@@ -405,6 +425,12 @@ class DynamicArgs(object):
             self.all_args[cp.name] = str(returned_int)
         else:
             raise SystemExit("invalid not implemented input_type", cp.input_type)
+
+    def get_namespace(self, cp):
+        namespace = self.all_args[cp.dependency]
+        if namespace is None or namespace is "":
+            raise SystemExit("missing namespace value in field " + cp.dependency)
+        return namespace
 
     def ask_for_path_value(self, cp):
         while True:
@@ -452,10 +478,12 @@ class YamlTemplateRunner:
     Uses a template path and file name to detect the missing template variables and asks the user for input values.
     """
 
-    def __init__(self, path, tpl_file_name, slug):
+    def __init__(self, path, tpl_file_name, slug, presets=None):
         self.path = path
         self.tpl_file_name = tpl_file_name
         self.slug = slug
+        self.presets = presets
+        self.generated_file = None
 
         join = os.path.join(path, tpl_file_name)
         if not os.path.isfile(join):
@@ -467,11 +495,25 @@ class YamlTemplateRunner:
             loader=FileSystemLoader(path),
             autoescape=select_autoescape(['html', 'xml'])
         )
+        env.filters['b64decode'] = base64.b64decode
+        env.filters['b64encode'] = base64.b64encode
+
+        def string_conv(input: bytes):
+            return input.decode('utf-8')
+
+        env.filters['string'] = string_conv
         ast = env.parse(self.read_raw_template())
         tpl_vars = dict()
         for i in meta.find_undeclared_variables(ast):
             print("missing value for template variable", "'" + i + "'")
-            tpl_vars[i] = prompt_string("Input value for '" + i + "':")
+
+            if isinstance(self.presets, dict) and i in self.presets:
+                # use value from presets
+                tpl_vars[i] = self.presets[i]
+                print('using preset value "%s"' % tpl_vars[i])
+            else:
+                # use value from user input
+                tpl_vars[i] = prompt_string("Input value for '" + i + "':")
 
         self.rendered_tpl = self.write_generated_template(env, tpl_vars)
 
@@ -480,6 +522,7 @@ class YamlTemplateRunner:
         tpl_file_path = os.path.join(self.path, self.tpl_file_name)
         file_name = os.path.splitext(tpl_file_path)[0]
         dest_yml_file = os.path.join(self.path, file_name + "-" + self.slug + ".yml")
+        self.generated_file = dest_yml_file
         with open(dest_yml_file, 'w') as file:
             file.write(self.tpl)
         return dest_yml_file
@@ -491,6 +534,9 @@ class YamlTemplateRunner:
 
     def is_ready(self) -> bool:
         return self.tpl is not None
+
+    def get_dest_file(self) -> str:
+        return self.generated_file
 
 
 def confirm_string(title, message) -> str:
